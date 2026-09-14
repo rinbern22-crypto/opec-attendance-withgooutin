@@ -1,1 +1,1124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <title>OPEC Employee Attendance</title>
+
+  <!-- QR Scanner Library -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+    }
+
+    .container {
+      max-width: 850px;
+      margin: 30px auto;
+      background: white;
+      border-radius: 25px;
+      padding: 35px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.10);
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 48px;
+      color: #1f3b60;
+    }
+
+    .subtitle {
+      font-size: 30px;
+      color: #6b7280;
+      margin-top: 5px;
+      margin-bottom: 30px;
+    }
+
+    .mode-buttons {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 25px;
+    }
+
+    .mode-button {
+      flex: 1;
+      padding: 18px 10px;
+      border: none;
+      border-radius: 12px;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      background: #e5e7eb;
+      color: #222;
+    }
+
+    .mode-button.active {
+      background: #1f3b60;
+      color: white;
+    }
+
+    .instruction {
+      font-size: 27px;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+
+    #reader {
+      width: 100%;
+      max-width: 650px;
+      margin: 0 auto;
+    }
+
+    #reader video {
+      border-radius: 15px;
+    }
+
+    .status {
+      margin-top: 18px;
+      min-height: 30px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .status.info {
+      color: #1f3b60;
+    }
+
+    .status.success {
+      color: #15803d;
+    }
+
+    .status.error {
+      color: #dc2626;
+    }
+
+    .result {
+      display: none;
+      margin-top: 25px;
+      padding: 25px;
+      border-radius: 15px;
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .result.success {
+      display: block;
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .result.error {
+      display: block;
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .employee-name {
+      font-size: 30px;
+      margin-bottom: 10px;
+    }
+
+    .employee-info {
+      font-size: 20px;
+      line-height: 1.7;
+    }
+
+    /* REASON MODAL */
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.55);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-box {
+      background: white;
+      width: 100%;
+      max-width: 500px;
+      padding: 30px;
+      border-radius: 20px;
+      text-align: center;
+    }
+
+    .modal-box h2 {
+      margin-top: 0;
+      font-size: 30px;
+    }
+
+    .modal-box textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 15px;
+      font-size: 18px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      resize: vertical;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .modal-buttons button {
+      flex: 1;
+      padding: 15px;
+      border: none;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .cancel {
+      background: #e5e7eb;
+    }
+
+    .submit {
+      background: #1f3b60;
+      color: white;
+    }
+
+    @media (max-width: 600px) {
+
+      body {
+        padding: 10px;
+      }
+
+      .container {
+        margin: 10px auto;
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 36px;
+      }
+
+      .subtitle {
+        font-size: 24px;
+      }
+
+      .mode-button {
+        padding: 14px 5px;
+        font-size: 15px;
+      }
+
+      .instruction {
+        font-size: 21px;
+      }
+    }
+
+  </style>
+</head>
+
+
+<body>
+
+<div class="container">
+
+  <h1>OPEC</h1>
+
+  <div class="subtitle">
+    Employee Attendance
+  </div>
+
+  <div class="mode-buttons">
+
+    <button
+      id="attendanceBtn"
+      class="mode-button active"
+      onclick="changeMode('attendance')">
+      ATTENDANCE
+    </button>
+
+    <button
+      id="goingOutBtn"
+      class="mode-button"
+      onclick="changeMode('out')">
+      GOING OUT
+    </button>
+
+    <button
+      id="goingInBtn"
+      class="mode-button"
+      onclick="changeMode('in')">
+      GOING IN
+    </button>
+
+  </div>
+
+  <div id="instruction" class="instruction">
+    PLEASE SCAN YOUR QR CODE
+  </div>
+
+  <div id="reader"></div>
+
+  <div id="status" class="status info">
+    Starting camera...
+  </div>
+
+  <div id="result" class="result"></div>
+
+</div>
+
+
+<!-- GOING OUT REASON MODAL -->
+
+<div id="reasonModal" class="modal">
+
+  <div class="modal-box">
+
+    <h2>Reason for Going Out</h2>
+
+    <p id="reasonEmployee"></p>
+
+    <textarea
+      id="reasonInput"
+      placeholder="Please enter your reason for going out...">
+    </textarea>
+
+    <div class="modal-buttons">
+
+      <button
+        class="cancel"
+        onclick="cancelReason()">
+        CANCEL
+      </button>
+
+      <button
+        class="submit"
+        onclick="submitReason()">
+        SUBMIT
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<script>
+
+  /* =====================================================
+     YOUR GOOGLE APPS SCRIPT WEB APP URL
+     ===================================================== */
+
+  const APPS_SCRIPT_URL =
+    "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+
+  let currentMode = "attendance";
+
+  let scanner = null;
+
+  let scanning = false;
+
+  let pendingQR = null;
+
+
+  /* =====================================================
+     CHANGE MODE
+     ===================================================== */
+
+  function changeMode(mode) {
+
+    currentMode = mode;
+
+    document
+      .getElementById("attendanceBtn")
+      .classList.toggle(
+        "active",
+        mode === "attendance"
+      );
+
+    document
+      .getElementById("goingOutBtn")
+      .classList.toggle(
+        "active",
+        mode === "out"
+      );
+
+    document
+      .getElementById("goingInBtn")
+      .classList.toggle(
+        "active",
+        mode === "in"
+      );
+
+
+    if (mode === "attendance") {
+
+      document.getElementById("instruction").innerText =
+        "PLEASE SCAN YOUR QR CODE";
+
+    }
+
+    if (mode === "out") {
+
+      document.getElementById("instruction").innerText =
+        "SCAN QR CODE TO GOING OUT";
+
+    }
+
+    if (mode === "in") {
+
+      document.getElementById("instruction").innerText =
+        "SCAN QR CODE TO GOING IN";
+
+    }
+
+
+    hideResult();
+
+    restartScanner();
+
+  }
+
+
+  /* =====================================================
+     START SCANNER
+     ===================================================== */
+
+  function startScanner() {
+
+    if (scanning) {
+      return;
+    }
+
+    scanning = true;
+
+    setStatus(
+      "Starting camera...",
+      "info"
+    );
+
+
+    scanner = new Html5Qrcode("reader");
+
+
+    scanner.start(
+
+      {
+        facingMode: "user"
+      },
+
+      {
+        fps: 10,
+        qrbox: {
+          width: 280,
+          height: 280
+        },
+
+        aspectRatio: 1.0
+
+      },
+
+      function(decodedText) {
+
+        if (!scanning) {
+          return;
+        }
+
+        scanning = false;
+
+        processQRCode(decodedText);
+
+      },
+
+      function(errorMessage) {
+
+        // Ignore normal scanning errors.
+
+      }
+
+    )
+
+    .then(function() {
+
+      setStatus(
+        "Camera ready. Please scan your QR code.",
+        "success"
+      );
+
+    })
+
+    .catch(function(error) {
+
+      console.error(
+        "Camera error:",
+        error
+      );
+
+      setStatus(
+        "Unable to start camera: " +
+        error,
+        "error"
+      );
+
+      scanning = false;
+
+    });
+
+  }
+
+
+  /* =====================================================
+     STOP SCANNER
+     ===================================================== */
+
+  function stopScanner() {
+
+    scanning = false;
+
+    if (!scanner) {
+      return;
+    }
+
+
+    scanner.stop()
+
+      .then(function() {
+
+        scanner.clear();
+
+        scanner = null;
+
+      })
+
+      .catch(function(error) {
+
+        console.log(
+          "Scanner stop:",
+          error
+        );
+
+        scanner = null;
+
+      });
+
+  }
+
+
+  /* =====================================================
+     RESTART SCANNER
+     ===================================================== */
+
+  function restartScanner() {
+
+    stopScanner();
+
+    setTimeout(function() {
+
+      startScanner();
+
+    }, 700);
+
+  }
+
+
+  /* =====================================================
+     PROCESS QR
+     ===================================================== */
+
+  function processQRCode(qrValue) {
+
+    console.log(
+      "QR detected:",
+      qrValue
+    );
+
+
+    pendingQR = qrValue;
+
+
+    setStatus(
+      "QR detected. Processing...",
+      "info"
+    );
+
+
+    if (currentMode === "attendance") {
+
+      callAppsScript(
+        "attendance",
+        qrValue,
+        ""
+      );
+
+      return;
+
+    }
+
+
+    if (currentMode === "out") {
+
+      callAppsScript(
+        "out",
+        qrValue,
+        ""
+      );
+
+      return;
+
+    }
+
+
+    if (currentMode === "in") {
+
+      callAppsScript(
+        "in",
+        qrValue,
+        ""
+      );
+
+      return;
+
+    }
+
+  }
+
+
+  /* =====================================================
+     CALL GOOGLE APPS SCRIPT USING JSONP
+     ===================================================== */
+
+  function callAppsScript(
+    action,
+    qrValue,
+    reason
+  ) {
+
+    const callbackName =
+      "opecCallback_" +
+      Date.now() +
+      "_" +
+      Math.floor(
+        Math.random() * 10000
+      );
+
+
+    const script =
+      document.createElement("script");
+
+
+    const params = new URLSearchParams();
+
+    params.append(
+      "qr",
+      qrValue
+    );
+
+    params.append(
+      "action",
+      action
+    );
+
+
+    if (reason) {
+
+      params.append(
+        "reason",
+        reason
+      );
+
+    }
+
+
+    params.append(
+      "callback",
+      callbackName
+    );
+
+
+    window[callbackName] =
+      function(result) {
+
+        try {
+
+          handleServerResult(
+            result
+          );
+
+        }
+
+        finally {
+
+          delete window[callbackName];
+
+          script.remove();
+
+        }
+
+      };
+
+
+    script.onerror =
+      function() {
+
+        delete window[callbackName];
+
+        script.remove();
+
+        handleFailure(
+          "Unable to connect to OPEC Attendance System."
+        );
+
+      };
+
+
+    script.src =
+      APPS_SCRIPT_URL +
+      "?" +
+      params.toString();
+
+
+    document.body.appendChild(
+      script
+    );
+
+  }
+
+
+  /* =====================================================
+     SERVER RESPONSE
+     ===================================================== */
+
+  function handleServerResult(result) {
+
+    console.log(
+      "Server result:",
+      result
+    );
+
+
+    if (!result) {
+
+      handleFailure(
+        "No response from server."
+      );
+
+      return;
+
+    }
+
+
+    /* GOING OUT NEEDS REASON */
+
+    if (
+      currentMode === "out" &&
+      result.requiresReason
+    ) {
+
+      openReasonModal(
+        result.employeeName,
+        result.employeeId
+      );
+
+      return;
+
+    }
+
+
+    if (result.success) {
+
+      let html = "";
+
+
+      if (result.employeeName) {
+
+        html +=
+          "<div class='employee-name'>" +
+          escapeHTML(
+            result.employeeName
+          ) +
+          "</div>";
+
+      }
+
+
+      html +=
+        "<div class='employee-info'>";
+
+
+      if (result.employeeId) {
+
+        html +=
+          "Employee ID: " +
+          escapeHTML(
+            result.employeeId
+          ) +
+          "<br>";
+
+      }
+
+
+      if (result.department) {
+
+        html +=
+          "Department: " +
+          escapeHTML(
+            result.department
+          ) +
+          "<br>";
+
+      }
+
+
+      if (result.action) {
+
+        html +=
+          "<strong>" +
+          escapeHTML(
+            result.action
+          ) +
+          "</strong><br>";
+
+      }
+
+
+      if (result.date) {
+
+        html +=
+          escapeHTML(
+            result.date
+          ) +
+          "<br>";
+
+      }
+
+
+      if (result.time) {
+
+        html +=
+          escapeHTML(
+            result.time
+          );
+
+      }
+
+
+      if (result.reason) {
+
+        html +=
+          "<br>Reason: " +
+          escapeHTML(
+            result.reason
+          );
+
+      }
+
+
+      if (result.outsideDuration) {
+
+        html +=
+          "<br>Outside Duration: " +
+          escapeHTML(
+            result.outsideDuration
+          );
+
+      }
+
+
+      html +=
+        "</div>";
+
+
+      showResult(
+        html,
+        "success"
+      );
+
+
+      setStatus(
+        "Recorded successfully.",
+        "success"
+      );
+
+
+    } else {
+
+      showResult(
+        escapeHTML(
+          result.message ||
+          "Unable to process attendance."
+        ),
+        "error"
+      );
+
+
+      setStatus(
+        "Please try again.",
+        "error"
+      );
+
+    }
+
+
+    setTimeout(function() {
+
+      hideResult();
+
+      pendingQR = null;
+
+      restartScanner();
+
+    }, 4000);
+
+  }
+
+
+  /* =====================================================
+     GOING OUT REASON
+     ===================================================== */
+
+  function openReasonModal(
+    name,
+    employeeId
+  ) {
+
+    document.getElementById(
+      "reasonEmployee"
+    ).innerText =
+      name +
+      " (" +
+      employeeId +
+      ")";
+
+
+    document.getElementById(
+      "reasonInput"
+    ).value = "";
+
+
+    document.getElementById(
+      "reasonModal"
+    ).style.display =
+      "flex";
+
+
+    setTimeout(function() {
+
+      document.getElementById(
+        "reasonInput"
+      ).focus();
+
+    }, 100);
+
+  }
+
+
+  function cancelReason() {
+
+    document.getElementById(
+      "reasonModal"
+    ).style.display =
+      "none";
+
+
+    pendingQR = null;
+
+    restartScanner();
+
+  }
+
+
+  function submitReason() {
+
+    const reason =
+      document.getElementById(
+        "reasonInput"
+      ).value.trim();
+
+
+    if (!reason) {
+
+      alert(
+        "Please enter the reason for going out."
+      );
+
+      return;
+
+    }
+
+
+    document.getElementById(
+      "reasonModal"
+    ).style.display =
+      "none";
+
+
+    setStatus(
+      "Recording GOING OUT...",
+      "info"
+    );
+
+
+    callAppsScript(
+      "out",
+      pendingQR,
+      reason
+    );
+
+  }
+
+
+  /* =====================================================
+     RESULT DISPLAY
+     ===================================================== */
+
+  function showResult(
+    html,
+    type
+  ) {
+
+    const element =
+      document.getElementById(
+        "result"
+      );
+
+
+    element.innerHTML = html;
+
+    element.className =
+      "result " + type;
+
+  }
+
+
+  function hideResult() {
+
+    const element =
+      document.getElementById(
+        "result"
+      );
+
+
+    element.style.display =
+      "none";
+
+    element.innerHTML = "";
+
+  }
+
+
+  /* =====================================================
+     STATUS
+     ===================================================== */
+
+  function setStatus(
+    message,
+    type
+  ) {
+
+    const element =
+      document.getElementById(
+        "status"
+      );
+
+
+    element.innerText =
+      message;
+
+
+    element.className =
+      "status " + type;
+
+  }
+
+
+  /* =====================================================
+     ERROR
+     ===================================================== */
+
+  function handleFailure(
+    message
+  ) {
+
+    showResult(
+      escapeHTML(message),
+      "error"
+    );
+
+
+    setStatus(
+      "System error. Please try again.",
+      "error"
+    );
+
+
+    setTimeout(function() {
+
+      hideResult();
+
+      pendingQR = null;
+
+      restartScanner();
+
+    }, 4000);
+
+  }
+
+
+  /* =====================================================
+     SECURITY
+     ===================================================== */
+
+  function escapeHTML(
+    value
+  ) {
+
+    const div =
+      document.createElement(
+        "div"
+      );
+
+
+    div.textContent =
+      value == null
+        ? ""
+        : String(value);
+
+
+    return div.innerHTML;
+
+  }
+
+
+  /* =====================================================
+     START
+     ===================================================== */
+
+  window.addEventListener(
+    "load",
+    function() {
+
+      startScanner();
+
+    }
+  );
+
+</script>
+
+</body>
+</html>
