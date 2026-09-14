@@ -704,30 +704,57 @@
      SERVER RESPONSE
      ===================================================== */
 
-  function handleServerResult(result) {
+ function handleServerResult(result) {
 
   console.log("SERVER RESULT:", result);
 
   if (!result) {
-    handleFailure("No response from Apps Script.");
+
+    handleFailure(
+      "No response from Apps Script."
+    );
+
     return;
   }
 
+
   /*
-   * SHOW THE ACTUAL RESPONSE
+   * GOING OUT NEEDS REASON
    */
+
+  if (
+    currentMode === "out" &&
+    result.requiresReason
+  ) {
+
+    openReasonModal(
+      result.employeeName,
+      result.employeeId
+    );
+
+    return;
+  }
+
+
+  /*
+   * ERROR RESPONSE
+   */
+
   if (!result.success) {
 
-    let message =
+    const message =
       result.message ||
       result.error ||
       "Apps Script returned an unsuccessful response.";
 
     showResult(
-      "<div style='font-size:24px; margin-bottom:10px;'>⚠️ " +
+      "<div style='font-size:24px; margin-bottom:10px;'>" +
+      "⚠️ " +
       escapeHTML(message) +
       "</div>" +
-      "<div style='font-size:16px;'>Please check the QR code and try again.</div>",
+      "<div style='font-size:16px;'>" +
+      "Please check the QR code and try again." +
+      "</div>",
       "error"
     );
 
@@ -745,23 +772,6 @@
       restartScanner();
 
     }, 6000);
-
-    return;
-  }
-
-
-  /*
-   * GOING OUT NEEDS REASON
-   */
-  if (
-    currentMode === "out" &&
-    result.requiresReason
-  ) {
-
-    openReasonModal(
-      result.employeeName,
-      result.employeeId
-    );
 
     return;
   }
@@ -880,177 +890,6 @@
   }, 4000);
 
 }
-
-
-    /* GOING OUT NEEDS REASON */
-
-    if (
-      currentMode === "out" &&
-      result.requiresReason
-    ) {
-
-      openReasonModal(
-        result.employeeName,
-        result.employeeId
-      );
-
-      return;
-
-    }
-
-
-    if (result.success) {
-
-      let html = "";
-
-
-      if (result.employeeName) {
-
-        html +=
-          "<div class='employee-name'>" +
-          escapeHTML(
-            result.employeeName
-          ) +
-          "</div>";
-
-      }
-
-
-      html +=
-        "<div class='employee-info'>";
-
-
-      if (result.employeeId) {
-
-        html +=
-          "Employee ID: " +
-          escapeHTML(
-            result.employeeId
-          ) +
-          "<br>";
-
-      }
-
-
-      if (result.department) {
-
-        html +=
-          "Department: " +
-          escapeHTML(
-            result.department
-          ) +
-          "<br>";
-
-      }
-
-
-      if (result.action) {
-
-        html +=
-          "<strong>" +
-          escapeHTML(
-            result.action
-          ) +
-          "</strong><br>";
-
-      }
-
-
-      if (result.date) {
-
-        html +=
-          escapeHTML(
-            result.date
-          ) +
-          "<br>";
-
-      }
-
-
-      if (result.time) {
-
-        html +=
-          escapeHTML(
-            result.time
-          );
-
-      }
-
-
-      if (result.reason) {
-
-        html +=
-          "<br>Reason: " +
-          escapeHTML(
-            result.reason
-          );
-
-      }
-
-
-      if (result.outsideDuration) {
-
-        html +=
-          "<br>Outside Duration: " +
-          escapeHTML(
-            result.outsideDuration
-          );
-
-      }
-
-
-      html +=
-        "</div>";
-
-
-      showResult(
-        html,
-        "success"
-      );
-
-
-      setStatus(
-        "Recorded successfully.",
-        "success"
-      );
-
-
-    } else {
-
-      showResult(
-        escapeHTML(
-          result.message ||
-          "Unable to process attendance."
-        ),
-        "error"
-      );
-
-
-      setStatus(
-        "Please try again.",
-        "error"
-      );
-
-    }
-
-
-    setTimeout(function() {
-
-      hideResult();
-
-      pendingQR = null;
-
-      restartScanner();
-
-    }, 4000);
-
-  }
-
-
-  /* =====================================================
-     GOING OUT REASON
-     ===================================================== */
-
   function openReasonModal(
     name,
     employeeId
