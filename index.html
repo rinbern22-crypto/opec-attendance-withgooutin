@@ -818,14 +818,15 @@
   }
 
 
-  if (result.action) {
+ if (result.action) {
 
-    html +=
-      "<strong>" +
-      escapeHTML(result.action) +
-      "</strong><br>";
+  html +=
+    "<div style='font-size:36px; font-weight:bold; margin:15px 0;'>" +
+    "✓ " +
+    escapeHTML(result.action) +
+    "</div>";
 
-  }
+}
 
 
   if (result.date) {
