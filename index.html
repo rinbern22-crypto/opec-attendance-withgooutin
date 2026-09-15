@@ -857,344 +857,297 @@
      * ============================================================
      */
 
-    function handleServerResult(result) {
+function handleServerResult(result) {
 
-      console.log(
-        "Apps Script result:",
-        result
-      );
+  console.log("SERVER RESPONSE:", result);
+  console.log("CURRENT MODE:", currentMode);
+  console.log("SERVER ACTION:", result ? result.action : "NO ACTION");
 
 
-      /*
-       * No result
-       */
+  if (!result) {
 
-      if (!result) {
+    handleFailure(
+      "No response was received from the attendance server."
+    );
 
-        handleFailure(
-          "No response was received from the attendance server."
-        );
+    return;
+  }
 
-        return;
 
-      }
+  /*
+   * GOING OUT REQUIRES REASON
+   */
 
+  if (
+    currentMode === "out" &&
+    result.requiresReason === true
+  ) {
 
-      /*
-       * GOING OUT REQUIRES REASON
-       */
+    pendingQR = pendingQR || "";
 
-      if (
-        currentMode === "out" &&
-        result.requiresReason
-      ) {
+    openReasonModal(
+      result.employeeName || "Employee"
+    );
 
-        reasonEmployeeName =
-          result.employeeName || "";
+    return;
+  }
 
-        pendingQR =
-          pendingQR || "";
 
+  /*
+   * ERROR
+   */
 
-        openReasonModal(
-          result.employeeName || "Employee"
-        );
+  if (result.success !== true) {
 
-        return;
+    const message =
+      result.message ||
+      "Unable to record attendance.";
 
-      }
+    showResult(
 
+      "<div class='result-action result-error'>" +
+      "✕ ERROR" +
+      "</div>" +
 
-      /*
-       * ERROR RESPONSE
-       */
+      "<div class='employee-details'>" +
+      escapeHTML(message) +
+      "</div>",
 
-      if (!result.success) {
+      "error"
 
-        const message =
-          result.message ||
-          "Unable to record attendance.";
+    );
 
+    setStatus(
+      "ERROR: " + message,
+      "error"
+    );
 
-        showResult(
+    setTimeout(function() {
 
-          "<div class='result-action result-error'>✕ ERROR</div>" +
+      processingScan = false;
 
-          "<div class='employee-details'>" +
+      restartScanner();
 
-          escapeHTML(message) +
+    }, 3000);
 
-          "</div>",
+    return;
+  }
 
-          "error"
 
-        );
+  /*
+   * DETERMINE ACTUAL ACTION
+   */
 
+  let recordedAction = "";
 
-        setStatus(
-          message,
-          "error"
-        );
 
+  if (currentMode === "out") {
 
-        /*
-         * Restart scanner
-         */
+    recordedAction = "GOING OUT";
 
-        setTimeout(function() {
+  }
 
-          processingScan = false;
+  else if (currentMode === "in") {
 
-          restartScanner();
+    recordedAction = "GOING IN";
 
-        }, 3000);
+  }
 
+  else if (currentMode === "attendance") {
 
-        return;
+    if (result.action) {
 
-      }
-
-
-      /*
-       * ========================================================
-       * SUCCESS RESPONSE
-       * ========================================================
-       */
-
-      let actionMessage = "";
-
-
-      if (result.action === "TIME IN") {
-
-        actionMessage =
-          "✓ TIME IN recorded successfully.";
-
-      }
-
-      else if (result.action === "TIME OUT") {
-
-        actionMessage =
-          "✓ TIME OUT recorded successfully.";
-
-      }
-
-      else if (result.action === "GOING OUT") {
-
-        actionMessage =
-          "✓ GOING OUT recorded successfully.";
-
-      }
-
-      else if (result.action === "GOING IN") {
-
-        actionMessage =
-          "✓ GOING IN recorded successfully.";
-
-      }
-
-      else {
-
-        actionMessage =
-          "✓ Recorded successfully.";
-
-      }
-
-
-      /*
-       * Build result information
-       */
-
-      let html = "";
-
-
-      /*
-       * ACTION
-       */
-
-      html +=
-        "<div class='result-action'>" +
-
-        escapeHTML(
-          actionMessage
-        ) +
-
-        "</div>";
-
-
-      /*
-       * EMPLOYEE NAME
-       */
-
-      if (result.employeeName) {
-
-        html +=
-          "<div class='employee-name'>" +
-
-          escapeHTML(
-            result.employeeName
-          ) +
-
-          "</div>";
-
-      }
-
-
-      /*
-       * EMPLOYEE DETAILS
-       */
-
-      html +=
-        "<div class='employee-details'>";
-
-
-      if (result.employeeId) {
-
-        html +=
-          "<div class='result-line'>" +
-
-          "<span class='result-label'>Employee ID:</span> " +
-
-          escapeHTML(
-            result.employeeId
-          ) +
-
-          "</div>";
-
-      }
-
-
-      if (result.department) {
-
-        html +=
-          "<div class='result-line'>" +
-
-          "<span class='result-label'>Department:</span> " +
-
-          escapeHTML(
-            result.department
-          ) +
-
-          "</div>";
-
-      }
-
-
-      if (result.date) {
-
-        html +=
-          "<div class='result-line'>" +
-
-          "<span class='result-label'>Date:</span> " +
-
-          escapeHTML(
-            result.date
-          ) +
-
-          "</div>";
-
-      }
-
-
-      if (result.time) {
-
-        html +=
-          "<div class='result-line'>" +
-
-          "<span class='result-label'>Time:</span> " +
-
-          escapeHTML(
-            result.time
-          ) +
-
-          "</div>";
-
-      }
-
-
-      /*
-       * REASON
-       */
-
-      if (result.reason) {
-
-        html +=
-          "<div class='result-line'>" +
-
-          "<span class='result-label'>Reason:</span> " +
-
-          escapeHTML(
-            result.reason
-          ) +
-
-          "</div>";
-
-      }
-
-
-      /*
-       * OUTSIDE DURATION
-       */
-
-      if (result.outsideDuration) {
-
-        html +=
-          "<div class='result-line'>" +
-
-          "<span class='result-label'>Outside Duration:</span> " +
-
-          escapeHTML(
-            result.outsideDuration
-          ) +
-
-          "</div>";
-
-      }
-
-
-      /*
-       * END DETAILS
-       */
-
-      html +=
-        "</div>";
-
-
-      /*
-       * Show result
-       */
-
-      showResult(
-        html,
-        "success"
-      );
-
-
-      /*
-       * Show action clearly in status
-       */
-
-      setStatus(
-        actionMessage,
-        "success"
-      );
-
-
-      /*
-       * Automatically return to scanner
-       * after 4 seconds.
-       */
-
-      setTimeout(function() {
-
-        hideResult();
-
-        processingScan = false;
-
-        restartScanner();
-
-      }, 4000);
+      recordedAction = result.action;
 
     }
+
+    else {
+
+      recordedAction = "ATTENDANCE";
+
+    }
+
+  }
+
+
+  console.log(
+    "FINAL RECORDED ACTION:",
+    recordedAction
+  );
+
+
+  /*
+   * SUCCESS MESSAGE
+   */
+
+  let actionMessage =
+    "✓ " +
+    recordedAction +
+    " RECORDED SUCCESSFULLY";
+
+
+  /*
+   * RESULT CARD
+   */
+
+  let html = "";
+
+
+  html +=
+    "<div class='result-action'>" +
+    escapeHTML(actionMessage) +
+    "</div>";
+
+
+  /*
+   * EMPLOYEE NAME
+   */
+
+  if (result.employeeName) {
+
+    html +=
+      "<div class='employee-name'>" +
+      escapeHTML(result.employeeName) +
+      "</div>";
+
+  }
+
+
+  html +=
+    "<div class='employee-details'>";
+
+
+  /*
+   * EMPLOYEE ID
+   */
+
+  if (result.employeeId) {
+
+    html +=
+      "<div class='result-line'>" +
+      "<span class='result-label'>Employee ID:</span> " +
+      escapeHTML(result.employeeId) +
+      "</div>";
+
+  }
+
+
+  /*
+   * DEPARTMENT
+   */
+
+  if (result.department) {
+
+    html +=
+      "<div class='result-line'>" +
+      "<span class='result-label'>Department:</span> " +
+      escapeHTML(result.department) +
+      "</div>";
+
+  }
+
+
+  /*
+   * DATE
+   */
+
+  if (result.date) {
+
+    html +=
+      "<div class='result-line'>" +
+      "<span class='result-label'>Date:</span> " +
+      escapeHTML(result.date) +
+      "</div>";
+
+  }
+
+
+  /*
+   * TIME
+   */
+
+  if (result.time) {
+
+    html +=
+      "<div class='result-line'>" +
+      "<span class='result-label'>Time:</span> " +
+      escapeHTML(result.time) +
+      "</div>";
+
+  }
+
+
+  /*
+   * REASON
+   */
+
+  if (result.reason) {
+
+    html +=
+      "<div class='result-line'>" +
+      "<span class='result-label'>Reason:</span> " +
+      escapeHTML(result.reason) +
+      "</div>";
+
+  }
+
+
+  /*
+   * OUTSIDE DURATION
+   */
+
+  if (result.outsideDuration) {
+
+    html +=
+      "<div class='result-line'>" +
+      "<span class='result-label'>Outside Duration:</span> " +
+      escapeHTML(result.outsideDuration) +
+      "</div>";
+
+  }
+
+
+  html +=
+    "</div>";
+
+
+  /*
+   * SHOW RESULT
+   */
+
+  showResult(
+    html,
+    "success"
+  );
+
+
+  /*
+   * SHOW ACTION IN STATUS
+   */
+
+  setStatus(
+    actionMessage,
+    "success"
+  );
+
+
+  /*
+   * RESET AFTER 5 SECONDS
+   */
+
+  setTimeout(function() {
+
+    hideResult();
+
+    processingScan = false;
+
+    pendingQR = "";
+
+    restartScanner();
+
+  }, 5000);
+
+}
 
 
     /*
